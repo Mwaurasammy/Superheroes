@@ -51,43 +51,36 @@ The **Superhero Power Tracker API** is a RESTful API built with Flask that allow
    git clone <repository-url>
    cd <repository-directory>
 
-2. Create a Virtual Environment
-    bash
-    Copy code
+2. Create a Virtual Environment:
+    ```bash
     python3 -m venv .venv
 
-    -- Activate the Virtual Environment
-        source .venv/bin/activate
+## Activate the Virtual Environment:
+    
+    source .venv/bin/activate
 
     
-3. cd superheroes_api
+## cd superheroes_api
 
 
-4. Install the required packages:
+## Install the required packages:
 
-    bash
     Copy code
     pip install -r requirements.txt
 
 ## Set up the database:
 
-    bash
-    Copy code
     flask db init
     flask db migrate
     flask db upgrade
 
 ## Run the application:
 
-    bash
-    Copy code
     python app.py
 
 ## Usage
     Use tools like Postman or cURL to interact with the API endpoints. For example, to create a new hero-power association:
 
-    bash
-    Copy code
     curl -X POST http://127.0.0.1:5000/hero_powers \
     -H "Content-Type: application/json" \
     -d '{"strength": "Average", "power_id": 1, "hero_id": 3}'
