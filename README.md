@@ -55,21 +55,21 @@ The **Superhero Power Tracker API** is a RESTful API built with Flask that allow
     ```bash
     python3 -m venv .venv
 
-## Activate the Virtual Environment:
-    
+3. Activate the Virtual Environment:
+    ```bash
     source .venv/bin/activate
 
     
-## cd superheroes_api
+4. cd superheroes_api
 
 
-## Install the required packages:
-
+5. Install the required packages:
+    ```bash
     Copy code
     pip install -r requirements.txt
 
-## Set up the database:
-
+6. Set up the database:
+    ```bash
     flask db init
     flask db migrate
     flask db upgrade
