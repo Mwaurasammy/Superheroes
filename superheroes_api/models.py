@@ -53,7 +53,7 @@ class HeroPower(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hero_id = db.Column(db.Integer, db.ForeignKey('heroes.id'))
     power_id = db.Column(db.Integer, db.ForeignKey('powers.id'))
-    strength = db.Column(db.String, nullable=False)  # Changed to String to match validation
+    strength = db.Column(db.String, nullable=False)
 
     def __init__(self, hero_id, power_id, strength):
         self.hero_id = hero_id

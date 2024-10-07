@@ -16,6 +16,11 @@ migrate = Migrate(app, db)
 from models import Hero, Power, HeroPower
 
 # Routes
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({"message": "Welcome to the Superheroes API!"})
+
+
 @app.route('/heroes', methods=['GET'])
 def get_heroes():
     heroes = Hero.query.all()
