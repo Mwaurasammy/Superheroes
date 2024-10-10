@@ -1,76 +1,60 @@
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import validates
 
-# Hero Model
+db = SQLAlchemy()
+
 class Hero(db.Model):
-    __tablename__ = 'heroes'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    super_name = db.Column(db.String, nullable=False)
-    hero_powers = db.relationship('HeroPower', backref='hero', cascade='all, delete-orphan')
+    name = db.Column(db.String(50), nullable=False)
+    super_name = db.Column(db.String(50), nullable=False)
+    hero_powers = db.relationship('HeroPower', backref='hero', cascade="all, delete")
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "super_name": self.super_name
-        }
-
-    def to_dict_with_powers(self):
         return {
             "id": self.id,
             "name": self.name,
             "super_name": self.super_name,
-            "hero_powers": [hp.to_dict() for hp in self.hero_powers]
+            "hero_powers": [hp.to_dict(hero=False) for hp in self.hero_powers]  
         }
 
-# Power Model
 class Power(db.Model):
-    __tablename__ = 'powers'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    description = db.Column(db.String, nullable=False)
-    hero_powers = db.relationship('HeroPower', backref='power', cascade='all, delete-orphan')
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    hero_powers = db.relationship('HeroPower', backref='power', cascade="all, delete")
 
-    def __init__(self, name, description):
-        self.name = name
-        self.description = description
-        
-    @staticmethod
-    def validate_description(description):
+    @validates('description')
+    def validate_description(self, key, description):
         if len(description) < 20:
-            raise ValueError('Description must be at least 20 characters long')
+            raise ValueError("Description must be at least 20 characters long.")
+        return description
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "description": self.description
+            "description": self.description,
+            "hero_powers": [hp.to_dict(power=False) for hp in self.hero_powers]  
         }
 
-# Hero-Power (Join Table)
 class HeroPower(db.Model):
-    __tablename__ = 'hero_powers'
     id = db.Column(db.Integer, primary_key=True)
-    hero_id = db.Column(db.Integer, db.ForeignKey('heroes.id'))
-    power_id = db.Column(db.Integer, db.ForeignKey('powers.id'))
-    strength = db.Column(db.String, nullable=False)
+    strength = db.Column(db.String(50), nullable=False)
+    hero_id = db.Column(db.Integer, db.ForeignKey('hero.id'), nullable=False)
+    power_id = db.Column(db.Integer, db.ForeignKey('power.id'), nullable=False)
 
-    def __init__(self, hero_id, power_id, strength):
-        self.hero_id = hero_id
-        self.power_id = power_id
-        self.strength = strength
-
-    @staticmethod
-    def validate_strength(strength):
+    @validates('strength')
+    def validate_strength(self, key, strength):
         if strength not in ['Strong', 'Weak', 'Average']:
-            raise ValueError('Invalid strength value')
-        
-    def to_dict(self):
-        return {
+            raise ValueError("Strength must be Strong, Weak, or Average.")
+        return strength
+
+    def to_dict(self, hero=True, power=True):
+        data = {
             "id": self.id,
-            "hero_id": self.hero_id,
-            "power_id": self.power_id,
             "strength": self.strength,
-            "hero": self.hero.to_dict(),
-            "power": self.power.to_dict()
         }
+        if hero:
+            data["hero"] = {"id": self.hero.id, "name": self.hero.name}  
+            data["power"] = {"id": self.power.id, "name": self.power.name}  
+        return data

@@ -1,26 +1,23 @@
 from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from sqlalchemy.orm import validates
+from models import db, Hero, Power, HeroPower  # Import db and models from models.py
 
 app = Flask(__name__)
 
 # Configuring the database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///superheroes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['DEBUG'] = True
 
-db = SQLAlchemy(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 
-# Import models after initializing SQLAlchemy
-from models import Hero, Power, HeroPower
-
-# Routes
-@app.route('/', methods=['GET'])
+# Root route
+@app.route('/')
 def index():
     return jsonify({"message": "Welcome to the Superheroes API!"})
 
-
+# Routes for heroes, powers, and hero powers
 @app.route('/heroes', methods=['GET'])
 def get_heroes():
     heroes = Hero.query.all()
@@ -47,7 +44,6 @@ def get_power(id):
     else:
         return jsonify({"error": "Power not found"}), 404
 
-# PATCH /powers/:id - Updates the description of a Power
 @app.route('/powers/<int:id>', methods=['PATCH'])
 def update_power(id):
     power = Power.query.get(id)
@@ -56,20 +52,17 @@ def update_power(id):
 
     data = request.get_json()
     description = data.get('description')
-    
-    # Validate description length
     if description and len(description) >= 20:
         power.description = description
-        db.session.commit()
-        return jsonify({
-            "id": power.id,
-            "name": power.name,
-            "description": power.description
-        }), 200
+        try:
+            db.session.commit()
+            return jsonify(power.to_dict())
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
     else:
-        return jsonify({"errors": ["Description must be at least 20 characters long."]}), 400
+        return jsonify({"errors": ["Description must be at least 20 characters"]}), 400
 
-# Handle both GET and POST methods for /hero_powers
 @app.route('/hero_powers', methods=['GET', 'POST'])
 def hero_powers():
     if request.method == 'POST':
@@ -78,51 +71,21 @@ def hero_powers():
         hero_id = data.get('hero_id')
         power_id = data.get('power_id')
 
-        # Validate strength
         if strength not in ['Strong', 'Weak', 'Average']:
-            return jsonify({"errors": ["Strength must be 'Strong', 'Weak', or 'Average'."]}), 400
+            return jsonify({"errors": ["Strength must be Strong, Weak, or Average."]}), 400
 
-        # Validate hero and power existence
-        hero = Hero.query.get(hero_id)
-        power = Power.query.get(power_id)
-        
-        if not hero or not power:
-            return jsonify({"errors": ["Hero or Power not found."]}), 404
-
-        # Create HeroPower
         hero_power = HeroPower(strength=strength, hero_id=hero_id, power_id=power_id)
         db.session.add(hero_power)
-        db.session.commit()
 
-        # Include hero and power details in the response
-        return jsonify({
-            "id": hero_power.id,
-            "strength": hero_power.strength,
-            "hero_id": hero.id,
-            "power_id": power.id,
-            "hero": {
-                "id": hero.id,
-                "name": hero.name,
-                "super_name": hero.super_name
-            },
-            "power": {
-                "id": power.id,
-                "name": power.name,
-                "description": power.description
-            }
-        }), 201
+        try:
+            db.session.commit()
+            return jsonify(hero_power.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"message": "Please use POST to create hero powers"}), 405
 
-    elif request.method == 'GET':
-        # Retrieve all HeroPower records
-        hero_powers = HeroPower.query.all()
-        return jsonify([{
-            "id": hero_power.id,
-            "strength": hero_power.strength,
-            "hero_id": hero_power.hero_id,
-            "power_id": hero_power.power_id,
-            "hero": hero_power.hero.to_dict(),
-            "power": hero_power.power.to_dict()
-        } for hero_power in hero_powers])
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5000, debug=True)
