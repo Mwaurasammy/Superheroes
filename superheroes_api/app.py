@@ -63,28 +63,54 @@ def update_power(id):
     else:
         return jsonify({"errors": ["Description must be at least 20 characters"]}), 400
 
-@app.route('/hero_powers', methods=['GET', 'POST'])
-def hero_powers():
-    if request.method == 'POST':
-        data = request.get_json()
-        strength = data.get('strength')
-        hero_id = data.get('hero_id')
-        power_id = data.get('power_id')
+@app.route('/hero_powers', methods=['POST'])
+def create_hero_power():
+    data = request.get_json()
+    
+    strength = data.get('strength')
+    hero_id = data.get('hero_id')
+    power_id = data.get('power_id')
 
-        if strength not in ['Strong', 'Weak', 'Average']:
-            return jsonify({"errors": ["Strength must be Strong, Weak, or Average."]}), 400
+    # Validate strength input
+    if strength not in ['Strong', 'Weak', 'Average']:
+        return jsonify({"errors": ["Strength must be Strong, Weak, or Average."]}), 400
+    
+    # Fetch hero and power objects
+    hero = Hero.query.get(hero_id)
+    power = Power.query.get(power_id)
 
-        hero_power = HeroPower(strength=strength, hero_id=hero_id, power_id=power_id)
-        db.session.add(hero_power)
+    # Check if hero and power exist
+    if not hero or not power:
+        return jsonify({"errors": ["Hero or Power not found."]}), 404
 
-        try:
-            db.session.commit()
-            return jsonify(hero_power.to_dict()), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"message": "Please use POST to create hero powers"}), 405
+    # Create the new HeroPower object
+    hero_power = HeroPower(strength=strength, hero_id=hero_id, power_id=power_id)
+    
+    db.session.add(hero_power)
+    
+    try:
+        db.session.commit()
+
+        return jsonify({
+            "id": hero_power.id,
+            "hero_id": hero.id,
+            "power_id": power.id,
+            "strength": hero_power.strength,
+            "hero": {
+                "id": hero.id,
+                "name": hero.name,
+                "super_name": hero.super_name
+            },
+            "power": {
+                "id": power.id,
+                "name": power.name,
+                "description": power.description
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
